@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Movie Search</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background: #111;
+            color: #fff;
+        }
+
+        input {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .card {
+            background: #1c1c1c;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .card-content h2 {
+            margin: 0 0 5px 0;
+        }
+
+        .card-content p {
+            margin: 5px 0;
+            color: #ccc;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .card {
+            background: #1c1c1c;
+            padding: 10px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.03);
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <h1>🎬 Movie Search</h1>
+
+    <input type="text" id="searchBox" placeholder="Type movie name...">
+    <button onclick="search()">Search</button>
+
+    <div id="results"></div>
+
+    <script>
+        const searchBox = document.getElementById("searchBox");
+        const resultsDiv = document.getElementById("results");
+        const API_URL = "http://localhost:8000";
+
+        let page = 1;
+        const size = 10;
+        let timeout = null;
+
+        // Live search with debounce
+        searchBox.addEventListener("input", () => {
+            clearTimeout(timeout);
+            page = 1;
+            timeout = setTimeout(search, 300);
+        });
+
+        async function search() {
+            const query = searchBox.value.trim();
+
+            if (!query) {
+                resultsDiv.innerHTML = "";
+                return;
+            }
+
+            resultsDiv.innerHTML = "Loading...";
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`
+                );
+
+                if (!response.ok) throw new Error("API error");
+
+                const data = await response.json();
+
+                let html = `<p>${data.total} result(s)</p>`;
+
+                if (data.results.length === 0) {
+                    html += "<p>No results found</p>";
+                } else {
+                    html += `<div class="grid">`;
+
+                    data.results.forEach(movie => {
+                        html += `
+                        <div class="card">
+                            <div class="card-content">
+                                <h3>${movie.title}</h3>
+                                <p>${movie.year || "Unknown year"}</p>
+                                <p>${movie.genre ? movie.genre.join(", ") : ""}</p>
+                            </div>
+                        </div>
+                    `;
+                    });
+
+                    html += `</div>`;
+                }
+
+                // Pagination controls
+                html += `
+                <div style="margin-top:20px;">
+                    <button onclick="prevPage()">Prev</button>
+                    <span> Page ${page} </span>
+                    <button onclick="nextPage()">Next</button>
+                </div>
+            `;
+
+                resultsDiv.innerHTML = html;
+
+            } catch (err) {
+                resultsDiv.innerHTML = "Error loading results";
+                console.error(err);
+            }
+        }
+
+        function nextPage() {
+            page++;
+            search();
+        }
+
+        function prevPage() {
+            if (page > 1) {
+                page--;
+                search();
+            }
+        }
+    </script>
+
+
+
+</body>
+
+</html>
